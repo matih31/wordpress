@@ -1,0 +1,69 @@
+version: '3'
+
+networks:
+  net-wp-network:
+
+services:
+  docker-rm-wp:
+    image: wordpress:6.2.0-apache
+    container_name: docker-net-wp
+    restart: always
+    ports:
+      - "9980:80"
+    links:
+      - docker-net-mysql
+    depends_on: 
+      - docker-net-mysql
+    environment:
+      WORDPRESS_DB_HOST: docker-net-mysql:9906
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: root
+      WORDPRESS_DB_NAME: nueva_base
+    volumes:
+      - ./wordpress:/var/www/html
+    networks: 
+      - net-wp-network
+
+  docker-net-mysql:
+    build:
+      context: .
+      dockerfile: ./docker/mysql/Dockerfile
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: docker-net-mysql
+    tty: true
+    restart: always
+    ports:
+      - "9906:3306"
+    volumes:
+      - ./db:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=nueva_base
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=user
+      - MYSQL_TCP_PORT=9906
+    networks: 
+      - net-wp-network
+
+  docker-net-phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    restart: always
+    container_name: docker-net-phpmyadmin
+    links:
+      - docker-net-mysql
+    depends_on: 
+      - docker-net-mysql
+    environment: 
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=user
+      - PMA_PORT=9906
+      - PMA_HOST=docker-net-mysql
+      - PMA_ARBITRARY=1
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+      - PMA_PORTS=9906
+    networks:
+      - net-wp-network
+    ports:
+      - "9981:80"
